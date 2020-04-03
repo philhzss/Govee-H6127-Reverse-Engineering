@@ -1,5 +1,5 @@
-# Govee-H6113-Reverse-Engineering
-My attempt at reverse engineering the Govee H6113 RGB lighting strips BLE commands.
+# Govee-H6127-Reverse-Engineering
+My attempt at reverse engineering the Govee H6127 RGB lighting strips BLE commands.
 
 ------
 # A Message to Govee
@@ -15,20 +15,101 @@ With all that out of the way, on to the documentation!
 
 # My Findings
 
-I have only tested this on the Govee H6113 so I am unsure if these packets or UUID's work for anything else.
+I have only tested this on the Govee H6127 so I am unsure if these packets or UUID's work for anything else.
 
 ### Checklist of packets
 - [x] Keep alive
 - [x] Change Color
 - [x] Set global brightness
-- [ ] Change to music mode
-- [ ] Change music mode to cycle colors
+- [x] Change to music mode
+- [x] Change music mode to cycle colors
+- [x] Change Scenes
+- [ ] DIY Mode
 
 ### How packets work
-From my understanding, all packets are 20 bytes long. The first byte is a identifier, followed by 18 bytes of data, followed by a XOR of all the bytes.
+From my understanding, all packets are 20 bytes long. 
+The first byte is a identifier, followed by 18 bytes of data, followed by an XOR of ALL the bytes.
+0x33 seems to be a command indicator (the only alternatives value for the first byte is 0xaa, 0xa1)
+    
+    0x33: Indicator
+    0xaa: keep alive
+    0xa1: DIY VALUES??
+    
+
+The second byte seems identify the packet type
+
+    0x01: Power
+    0x04: Brightness
+    0x05: Color
+
+The third byte differs based on type.
+
+    For power packets, it's a boolean indicating the power state. (0x00, or 0x01)
+    For brightness packets, it corresponds to a uint8 brightness value, affecting lights at about 0x14 to 1% - 0xfe to 100%
+    For color packets, this indicates an operation mode.
+    
+    0x33: Indicator
+        0x01: Power
+            0x00: Off
+            0x01: On
+        0x04: Brightness
+            0x00: 0% (also Off)
+            0x14: 1%
+            0xfe: 100%
+        0x05: Color
+            0x02: Manual
+            0x01: Music
+            0x04: Scene
+            0x0a: DIY??
+
+
+Color packets also carry an RGB value, followed by a boolean and a second RGB value. The boolean seems to switch the set of LEDs used within the bulb. 
 
 ```
-IDENTIFIER, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, XOR
+Have not verified this in the H6127 but the condition appears to exist. (from h6113)
+There is one set for RGB values and one for warm/cold-white values, where True corresponds to the warm/cold-white LEDs. When the flag is set, the first RGB value seems to be ignored and vice-versa. The values for warm/cold-white LEDs cannot be set arbitrarily. The slider within the app UI uses a list of hardcoded color codes. (thanks Henje!)
+````
+
+Zeropadding follows. unless colors can be changed within mode.
+Finally, a checksum over the payload is calculated by XORing all bytes.
+     
+     0x33: Indicator
+        0x01: power
+            0x00: Off
+            0x01: On
+        0x04: brightness
+            0x00: 0% (also Off)
+            0x14: 1%
+            0xfe: 100%
+        0x05: color
+            0x02: Manual
+                0x000000: red, green, blue
+                0xffffff: red, green, blue
+            0x01: music
+                0x00: Energic
+                0x01: Spectrum(colors)
+                    0x000000: red, green, blue
+                    0xffffff: red, green, blue
+                0x02: Rolling(colors)
+                    0x000000: red, green, blue
+                    0xffffff: red, green, blue
+                0x03: Rhythm
+            0x04: Scene
+                0x00: Sunrise
+                0x01: Sunset
+                0x04: Move
+                0x05: Dating
+                0x07: Romantic
+                0x08: Blinking
+                0x09: Candlelight
+                0x0f: Snowflake
+            0x0a: DIY??
+
+
+
+```
+IDENTIFIER, PACKETTYPE, MODE/DATA, MODEID, MODEDATA/DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, XOR
+
 ```
 
 | Type           | Unformatted UUID                 | Formatted UUID                       |
@@ -43,12 +124,29 @@ IDENTIFIER, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DATA, DA
 It is always this, it never seems to change. This is sent every 2 seconds from the mobile app to the device.
 ```
 0xAA, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAB
+aa010000000000000000000000000000000000ab
+```
+### On/Off
+```
+0x33, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33
+3301010000000000000000000000000000000033 = on
+
+0x33, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x32
+3301000000000000000000000000000000000032 = off
+
+#Also setting brightness to 0% seems to turn it off
+0x33, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x37
+330400000000000000000000000000000000037
 ```
 
 ### Set Color
 RED, GREEN, BLUE range is 0 - 255 or 0x00 - 0xFF
 ```
-0x33, 0x05, 0x02, RED, GREEN, BLUE, 0x00, 0xFF, 0xAE, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (0x31 ^ RED ^ GREEN ^ BLUE)
+0x33, 0x05, 0x02, RED, GREEN, BLUE, 0x00, 0xFF, 0xAE, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, XOR)
+
+#not sure what the middles section is for,(ffae54) but it is included in the XOR and is not always required. Above mentions may be for warm white colors etc)
+
+0x33, 0x05, 0x02, RED, GREEN, BLUE, 0X00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, XOR)
 ```
 
 ### Set Brightness
@@ -56,3 +154,38 @@ BRIGHTNESS range is 0 - 255 or 0x00 - 0xFF
 ```
 0x33, 0x04, BRIGHTNESS, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (0x33 ^ 0x04 ^ BRIGHTNESS)
 ```
+
+### Set Music Modes
+```
+3305010000000000000000000000000000000037 = music Energic
+3305010100ff00000000000000000000000000c9 = music spectrum(red)
+33050101000000ff0000000000000000000000c9 = music spectrum(blue)
+3305010200ff00000000000000000000000000ca = music rolling (red)
+33050102000000ff0000000000000000000000ca = music rolling (blue)
+3305010300000000000000000000000000000034 = music Rhythm
+```
+
+### Set Scene
+```
+3305040000000000000000000000000000000032 = Scene(Sunrise)
+3305040100000000000000000000000000000033 = Scene(Sunset)
+3305040400000000000000000000000000000036 = Scene(Movie)
+3305040500000000000000000000000000000037 = Scene(Dating)
+3305040700000000000000000000000000000035 = Scene(Romantic)
+330504080000000000000000000000000000003a = Scene(Blinking)
+330504090000000000000000000000000000003b = Scene(Candlelight)
+3305040f0000000000000000000000000000003d = Scene(snowflake)```
+```
+### DIY Mode
+```
+33050a000000000000000000000000000000003c = rainbow
+```
+DIYMODE DATA?
+a1020002000000000000000000000000000000a1
+a102010a03032b18ff0000ff7f00ffff0000ff1b
+a10202000000ff00ffff8b00ffffffff000000d5
+a102ff000000000000000000000000000000005c
+
+
+
+Thank you to egold555,Freemanium, and ddxtanx for the initial findings.
