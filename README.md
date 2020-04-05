@@ -33,7 +33,7 @@ The first byte is a identifier, followed by 18 bytes of data, followed by an XOR
     
     0x33: Indicator
     0xaa: keep alive
-    0xa1: DIY VALUES??
+    0xa1: DIY VALUES
     
 
 The second byte seems identify the packet type
@@ -60,7 +60,7 @@ The third byte differs based on type.
             0x02: Manual
             0x01: Music
             0x04: Scene
-            0x0a: DIY??
+            0x0a: DIY
 
 
 Color packets also carry an RGB value, followed by a boolean and a second RGB value. The boolean seems to switch the set of LEDs used within the bulb. 
@@ -103,7 +103,7 @@ Finally, a checksum over the payload is calculated by XORing all bytes.
                 0x08: Blinking
                 0x09: Candlelight
                 0x0f: Snowflake
-            0x0a: DIY??
+            0x0a: DIY
 
 
 
@@ -209,8 +209,8 @@ Fifth and Sixth bytes are the Style and the Style Mode
 
 Seventh byte is the Speed of transitions 00 being no movement, and 64 appearing to be the fastest
     
-    00: no movement
-    64: fastest movement
+    00: No movement
+    64: Fastest movement
 
 Eighth byte is unknown at this time:
 
@@ -258,7 +258,7 @@ Remaining packets are color packets, adding and XOR
 a102 02 00 0000ff 00ffff 8b00ff ffffff 000000d5 = Data
 ```
 
-****Third Packet Appears to be for Combo Style and Style mode data*** 
+****Third Packet Appears to be for Combo Style and Style mode data****
     
     a102 03 0100 0200 0303 00000000000000000000a3 
 
