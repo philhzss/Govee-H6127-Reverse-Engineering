@@ -24,7 +24,7 @@ I have only tested this on the Govee H6127 so I am unsure if these packets or UU
 - [x] Change to music mode
 - [x] Change music mode to cycle colors
 - [x] Change Scenes
-- [ ] DIY Mode
+- [x] DIY Mode
 
 ### How packets work
 From my understanding, all packets are 20 bytes long. 
@@ -176,15 +176,117 @@ BRIGHTNESS range is 0 - 255 or 0x00 - 0xFF
 330504090000000000000000000000000000003b = Scene(Candlelight)
 3305040f0000000000000000000000000000003d = Scene(snowflake)```
 ```
-### DIY Mode
+#### DIY
+DIY mode appears to start with a keep alive followed by a start data packet, followed by 1 to 3 packets of data, followed by an end data packet, followed by the DIY mode command.
+
+### DIY Mode Data
+Start Packet consists of 0xa102, PACKET#(0x00), TOTAL PACKET#'S, PADDING, XOR
+````
+a102 00 02 000000000000000000000000000000a1 = Start
+````
+First 2 bytes are a1 and 02 sigaling a write
+    
+    0xa102: Write Data
+
+Third byte is the Number of the packet from 00-ff
+    
+    0x00: Start
+    0x01: Number of packet
+    0x02: Number of packet
+    0x03: Number of packet
+    0xff: End
+
+Fourth byte is the name of the DIY in the App
+
+    3b: Name
+
+Fifth and Sixth bytes are the Style and the Style Mode
+
+    00:Fade               01:Jumping              02:Flicker             03:Marquee           04:Music           FF:combo
+        00:Whole              00:whole                00:Whole               03:Straight          08:Rhythm          00:??
+        01: N/A               01:subsection           01:subsection          04:Gathered          06:Spectrum
+        02:Circulation        02:circulation          02:Circulation         05:Dispersive        07:Rolling
+
+Seventh byte is the Speed of transitions 00 being no movement, and 64 appearing to be the fastest
+    
+    00: no movement
+    64: fastest movement
+
+Eighth byte is unknown at this time:
+
+    18: PADDING?
+    
+Remaining bytes are the Colors limited to 8 colors total between (2 packets) 
+    
+    0xFFFFFF: Red, Green, Blue
+    0xFFFFFF: Red, Green, Blue
+    0xFFFFXX: Red, Green, XOR
+
+Last byte is the XOR as shown above:
+
+    XX: XOR
+
 ```
-33050a000000000000000000000000000000003c = rainbow
+0xa102, PACKET#, NAME, STYLE, MODE, SPEED, ??, RED, GREEN, BLUE, RED, GREEN, BLUE, RED, GREEN, BLUE, RED, GREEN, XOR
+a102 01 0a 03 03 2b 18 ff0000 ff7f00 ffff00 00ff 1b
 ```
-DIYMODE DATA?
-a1020002000000000000000000000000000000a1
-a102010a03032b18ff0000ff7f00ffff0000ff1b
-a10202000000ff00ffff8b00ffffffff000000d5
-a102ff000000000000000000000000000000005c
+
+****The Second packet is mostly only color data and is only necessary if there are more than 2 colors in the DIY:****
+
+First 2 bytes of 2nd Packet a102
+
+    0xa102: Write Data
+    
+Third bytes of 2nd Packet is the packet number
+
+    0x02: Packet number
+
+Fourth byte of 2nd Packet is the Blue color data of the previous packet (if more than 2 colors)
+
+    0xFF: Blue
+
+Remaining packets are color packets, adding and XOR
+
+    0xFFFFFF: Red, Green, Blue
+    0xFFFFFF: Red, Green, Blue
+    0xFFFFFF: Red, Green, Blue
+    0xFFFFFF: Red, Green, Blue
+    0x000000XX: Padding and XOR
+
+```
+0xa102, PACKET#, BLUE, RED, GREEN, BLUE, RED, GREEN, BLUE, RED, GREEN, BLUE, RED, GREEN, BLUE, 0x00, 0x00, 0x00, XOR
+a102 02 00 0000ff 00ffff 8b00ff ffffff 000000d5 = Data
+```
+
+****Third Packet Appears to be for Combo Style and Style mode data*** 
+    
+    a102 03 0100 0200 0303 00000000000000000000a3 
+
+End Packet appears to be 0xa102, 0xff, Padding, XOR
+
+```
+a102 ff 000000000000000000000000000000005c = End
+```
+
+### DIY Mode command
+```
+33050a000000000000000000000000000000003c
+```
+
+###Full Stream
+```
+aa010000000000000000000000000000000000ab            = keep alive
+a1020003000000000000000000000000000000a0            = Start
+a102 01 3b ff 00 62 18 ffffff ff0000 ffffff ff001c  = Data
+a102 02 00 ffffff ff0000 ffffff ff0000 080000a9     = Data
+a102 03 0100 0200 0303 00000000000000000000a3       = Data
+a102 ff 000000000000000000000000000000005c          = Data
+33050a000000000000000000000000000000003c            = DIY Command
+
+```
+
+gatttool -i hci0 -b <mac> --char-write-req -a 0x0015 -n <command>
+
 
 
 
