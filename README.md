@@ -176,10 +176,10 @@ BRIGHTNESS range is 0 - 255 or 0x00 - 0xFF
 330504090000000000000000000000000000003b = Scene(Candlelight)
 3305040f0000000000000000000000000000003d = Scene(snowflake)```
 ```
-#### DIY
+### DIY
 DIY mode appears to start with a keep alive followed by a start data packet, followed by 1 to 3 packets of data, followed by an end data packet, followed by the DIY mode command.
 
-### DIY Mode Data
+#### DIY Mode Data
 Start Packet consists of 0xa102, PACKET#(0x00), TOTAL PACKET#'S, PADDING, XOR
 ````
 a102 00 02 000000000000000000000000000000a1 = Start
@@ -268,12 +268,12 @@ End Packet appears to be 0xa102, 0xff, Padding, XOR
 a102 ff 000000000000000000000000000000005c = End
 ```
 
-### DIY Mode command
+#### DIY Mode command
 ```
 33050a000000000000000000000000000000003c
 ```
 
-###Full Stream
+### Full Stream
 ```
 aa010000000000000000000000000000000000ab            = keep alive
 a1020003000000000000000000000000000000a0            = Start
