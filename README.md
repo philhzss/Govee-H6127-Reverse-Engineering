@@ -16,14 +16,17 @@ With all that out of the way, on to the documentation!
 # My Findings
 
 I have only tested this on the Govee H6127 so I am unsure if these packets or UUID's work for anything else.
-
+Log is found by enabling developer options bluetooth_hci snoop log `adb bugreport anewbugreport && unzip anewbugreport.zip && wireshark FS/data/log/bt/btsnoop_hci.log`
+To filter the ATT packets, 
 ### Checklist of packets
 - [x] Keep alive
 - [x] Change Color
+- [x] Change Color of each of 15 segments
+- [x] Gradient
 - [x] Set global brightness
 - [x] Change to music mode
 - [x] Change music mode to cycle colors
-- [x] Change Scenes
+- [X] Change Scenes(update)
 - [x] DIY Mode
 
 ### How packets work
@@ -34,7 +37,6 @@ The first byte is a identifier, followed by 18 bytes of data, followed by an XOR
     0x33: Indicator
     0xaa: keep alive
     0xa1: DIY VALUES
-    
 
 The second byte seems identify the packet type
 
@@ -81,11 +83,14 @@ Finally, a checksum over the payload is calculated by XORing all bytes.
             0x00: 0% (also Off)
             0x14: 1%
             0xfe: 100%
+        0x14: gradient
+            0x01: On
+            0x00: Off
         0x05: color
             0x02: Manual
                 0x000000: red, green, blue
                 0xffffff: red, green, blue
-            0x01: music
+            0x01: Music
                 0x00: Energic
                 0x01: Spectrum(colors)
                     0x000000: red, green, blue
@@ -97,14 +102,20 @@ Finally, a checksum over the payload is calculated by XORing all bytes.
             0x04: Scene
                 0x00: Sunrise
                 0x01: Sunset
-                0x04: Move
+                0x04: Movie
                 0x05: Dating
                 0x07: Romantic
-                0x08: Blinking
+                0x08: Twinkle (Formerly Blinking)
                 0x09: Candlelight
                 0x0f: Snowflake
+                0x10: Energetic
+                0x0a: Breathe
+                0x14: Crossing
+                0x15: Rainbow
             0x0a: DIY
-
+            0x0b: Segments
+                0x00:Left Half(1,2,3,4,5,6,7,8)
+                     0x00:Right Half (9,10,11,12,13,15)
 
 
 ```
@@ -146,7 +157,19 @@ RED, GREEN, BLUE range is 0 - 255 or 0x00 - 0xFF
 
 #not sure what the middles section is for,(ffae54) but it is included in the XOR and is not always required. Above mentions may be for warm white colors etc)
 
-0x33, 0x05, 0x02, RED, GREEN, BLUE, 0X00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, XOR)
+0x33, 0x05, 0x02, RED, GREEN, BLUE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, XOR)
+```
+
+### Set Color Gradient On/Off
+```
+3314010000000000000000000000000000000026 = Gradient On
+3314000000000000000000000000000000000027 = Gradient Off
+```
+### Set Color Segments
+The individual 15, segments are distrubuted between left(1-8)(00-ff)and right(9-15)(00-7f, or 80-ff).
+To address individual segments see ***Color_Segments_chart.md***.
+```
+0x33, 0x05, 0x0b, RED, GREEN, BLUE, LEFT, RIGHT, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, XOR)
 ```
 
 ### Set Brightness
@@ -283,7 +306,7 @@ a102 03 0100 0200 0303 00000000000000000000a3       = Data
 a102 ff 000000000000000000000000000000005c          = End Data
 33050a000000000000000000000000000000003c            = DIY Command
 
-```
+``` 
 
 gatttool -i hci0 -b (mac) --char-write-req -a 0x0015 -n (command)
 
