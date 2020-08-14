@@ -1,4 +1,4 @@
-|  Left Segments  |Right Segments |Hex Value|
+|  Left Segments  |Right Segments |Decimal Value|
 |-----------------|---------------|---|
 |0                |0              | 0 |
 |	1								|	9							|	1	|
