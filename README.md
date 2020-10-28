@@ -311,6 +311,23 @@ a102 ff 000000000000000000000000000000005c          = End Data
 gatttool -i hci0 -b (mac) --char-write-req -a 0x0015 -n (command)
 
 
+```
+
+### Phil notes
+```
+keep alive:
+gatttool -i hci0 -b A4:C1:38:9C:70:21 --char-write-req -a 0x0015 -n aa010000000000000000000000000000000000ab --listen
+will return "aa 01 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 aa" if  on, and "aa 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ab" if off
+
+on
+gatttool -i hci0 -b A4:C1:38:9C:70:21 --char-write-req -a 0x0015 -n 3301010000000000000000000000000000000033 -t public
+
+off
+gatttool -i hci0 -b A4:C1:38:9C:70:21 --char-write-req -a 0x0015 -n 3301000000000000000000000000000000000032 -t public
+
+``` 
+
+
 
 
 Thank you to egold555,Freemanium, and ddxtanx for the initial findings.
