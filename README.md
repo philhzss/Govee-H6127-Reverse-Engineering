@@ -311,7 +311,6 @@ a102 ff 000000000000000000000000000000005c          = End Data
 gatttool -i hci0 -b (mac) --char-write-req -a 0x0015 -n (command)
 
 
-```
 
 ### Phil notes
 ```
@@ -326,7 +325,6 @@ off
 gatttool -i hci0 -b A4:C1:38:9C:70:21 --char-write-req -a 0x0015 -n 3301000000000000000000000000000000000032 -t public
 
 ``` 
-
 
 
 
