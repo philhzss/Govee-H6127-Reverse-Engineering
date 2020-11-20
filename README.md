@@ -326,25 +326,27 @@ gatttool -i hci0 -b A4:C1:38:9C:70:21 --char-write-req -a 0x0015 -n 330100000000
 
 ``` 
 
-## Reading current values (seems to be broadcast by Govee device when you initially connect to it, WIP:
+## Reading current values (seems to be broadcast by Govee device when you initially connect to it), WIP:
 There has to be a way to read current status. So far I've discovered this.
 For brightness, it's aa04......... etc. :
 ```
 On notification handle (0x0011):
 aa04fe0000000000000000000000000000000050 seems to mean that brightness is 100%
 aa041400000000000000000000000000000000ba seems to mean that brightness is 1%
-
+```
 It seems like those values are spat out by the bluetooth controller if you write this to the same handle as usual 0x0015:
 aa040000000000000000000000000000000000ae
-```
+<br>
 For colour, it's aa05......... etc:
 ```
 On notification handle (0x0011):
-aa050dff0000000000000000000000000000005d seems to mean that colour is 100% red (I have not tested other colours at this time)
+aa050dff0000000000000000000000000000005d 
+```
+seems to mean that colour is 100% red (I have not tested other colours at this time)
 We should be able to assume then that aa05 means colour, 0d = ?? (colour state??) and FF, 00 ,00 is the current colour)
 
 It seems like those values are spat out by the bluetooth controller if you write this to the same handle as usual 0x0015:
 aa050100000000000000000000000000000000ae
-```
+
 
 Thank you to egold555,Freemanium, and ddxtanx for the initial findings.
